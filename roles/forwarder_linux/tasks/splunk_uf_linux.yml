@@ -1,0 +1,125 @@
+--- # Install Splunk Enterprise
+ 
+- name: Create the "splunk" group
+  group:
+    name: splunk
+    state: present
+
+- name: Create the splunk account
+  user: 
+    name:  splunk
+    shell: /bin/bash
+    group: splunk 
+    state: present
+  
+# Verify if Splunk is already installed
+- name: Check if Splunk path exists
+  stat: path={{ splunk_install_path }}/splunkforwarder
+  register: check_splunk_path
+  become: yes
+  become_method: sudo
+
+# Copy and unarchive Splunk
+- name: Copy and unarchive Splunk
+  unarchive: src={{ splunkforwarder_bin_path }} dest={{ splunk_install_path }} owner=splunk group=splunk
+  when: check_splunk_path.stat.exists == false
+  
+# Check for which firewall we have and set rules if the firewall is enabled.
+# Set Firewall rules for iptables
+#- name: Set iptables to allow 8000
+#  iptables:
+#    chain: INPUT
+#    protocol: tcp
+#    destination_port: 8000
+#    jump: accept
+#    comment: Splunk Web Interface
+#  become: yes
+
+- name: Set Timezone to UTC
+  timezone:
+    name: UTC
+
+- name: Set permissions for Splunk folder
+  file:
+    path: "{{ splunk_install_path }}/splunkforwarder"
+    owner: splunk
+    group: splunk
+    recurse: yes
+  become: yes
+
+- name: Create user-seed needed for 7.x installs
+  copy:
+    dest: "{{ splunk_install_path }}/splunkforwarder/etc/system/local/user-seed.conf"
+    owner: splunk
+    group: splunk
+    force: no
+    content: |
+      [user_info]
+      USERNAME = admin
+      HASHED_PASSWORD = {{ splunk_admin_pass }}
+  when: check_splunk_path.stat.exists == false
+  
+# Start and accept licence (run async)
+- name: Start Splunk and accept licence
+  command: "{{ splunk_install_path }}/splunkforwarder/bin/splunk start --answer-yes --no-prompt --accept-license"
+  async: 300
+  poll: 5
+  become: yes
+  become_user: splunk
+  ignore_errors: yes
+  when: check_splunk_path.stat.exists == false
+
+# chmod 400 /opt/splunk/var/lib/splunk/kvstore/mongo/splunk.key
+#- name: Fix permissions on kvstore/mongo/splunk.key
+#  file: 
+#    path: "{{ splunk_install_path }}/splunkforwarder/var/lib/splunk/kvstore/mongo/splunk.key"
+#    mode: 0400
+#  ignore_errors: yes
+  
+# Enable boot-start
+- name: Check for splunk init.d script
+  stat: path=/etc/init.d/splunk
+  register: splunk_initd
+
+- name: Stop splunk after first run.
+  command: "{{ splunk_install_path }}/splunkforwarder/bin/splunk stop"
+  become: yes
+  become_user: splunk
+  ignore_errors: yes
+  when: splunk_initd.stat.exists == false
+
+- name: Enable boot start for Splunk  
+  command: "{{ splunk_install_path }}/splunkforwarder/bin/splunk enable boot-start -user splunk"
+  ignore_errors: yes
+  when: splunk_initd.stat.exists == false
+
+#  Replace Splunk init file with new that set ulimits and disables THP
+#- name: Replace Splunk init file with new that set ulimits and disables THP
+#  copy:
+#    src: "{{ splunk_deployment }}/splunk.init"
+#    dest: /etc/init.d/splunk
+#    owner: root
+#    group: root
+#    mode: 0700
+#  when: splunk_initd.stat.exists == false
+
+- name: Copy deployment-client base if doesn't exists
+  copy:
+    src: deployment_client
+    dest: "{{ splunk_install_path }}/splunkforwarder/etc/apps/"
+    owner: splunk
+    group: splunk
+    force: no
+  notify: splunk restart
+
+- name: Set deployment client
+  replace:
+    path: "{{ splunk_install_path }}/splunkforwarder/etc/apps/deployment_client/local/deploymentclient.conf"
+    regexp: '(targetUri = )(deployment_server)'
+    replace: '\1 {{ deployment_server }}'
+
+- name: Reload systemctl
+  command: systemctl daemon-reload
+  become: yes
+  when: ansible_os_family == "RedHat" and ansible_distribution_version >= 7 and splunk_initd.stat.exists == false 
+

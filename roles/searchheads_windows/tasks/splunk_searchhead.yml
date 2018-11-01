@@ -1,0 +1,86 @@
+--- # Copy configs needed for Search Head Cluster
+
+# Verify if Splunk search_bootstrap_multisite already exists
+- name: Check if Splunk search_bootstrap_multisite path exists
+  stat: path={{ splunk_install_path }}/splunk/etc/apps/search_bootstrap_multisite
+  register: splunk_search_bootstrap_multisite
+
+- name: Copy SearchHead base if doesn't exists
+  copy:
+    src: roles/searchheads/files/search_bootstrap_multisite
+    dest: "{{ splunk_install_path }}/splunk/etc/apps/"
+    owner: splunk
+    group: splunk
+    force: no
+  notify: splunk restart
+
+- name: Copy deployment-client base if doesn't exists
+  copy:
+    src: deployment_client
+    dest: "{{ splunk_install_path }}/splunk/etc/apps/"
+    owner: splunk
+    group: splunk
+    force: no
+  notify: splunk restart
+
+- name: Set deployment client
+  replace:
+    path: "{{ splunk_install_path }}/splunk/etc/apps/deployment_client/local/deploymentclient.conf"
+    regexp: '(targetUri = )(deployment_server)'
+    replace: '\1 {{ deployment_server }}'
+
+- name: Set Index cluster master uri
+  replace:
+    path: "{{ splunk_install_path }}/splunk/etc/apps/search_bootstrap_multisite/local/server.conf"
+    regexp: '(master_uri = )(https://master.example.com:8089)'
+    replace: '\1 {{ cluster_master_uri }}'
+  notify: splunk restart
+    
+- name: Set Indexer Cluster pass4SymKey
+  replace:
+    path: "{{ splunk_install_path }}/splunk/etc/apps/search_bootstrap_multisite/local/server.conf"
+    regexp: '(pass4SymmKey = )(SplunkPSD3FAUL7)'
+    replace: '\1 {{ index_cluster_passwd }}'
+  notify: splunk restart
+
+- name: Set SHC enabled / disable
+  replace:
+    path: "{{ splunk_install_path }}/splunk/etc/apps/search_bootstrap_multisite/local/server.conf"
+    regexp: '(disabled = )(false)'
+    replace: '\1 {{ search_head_cluster_disabled }}'
+  notify: splunk restart
+
+- name: Set SHC MGMT uri  (should be the host ip for localhost)
+  replace:
+    path: "{{ splunk_install_path }}/splunk/etc/apps/search_bootstrap_multisite/local/server.conf"
+    regexp: '(mgmt_uri = )(\[ mgmt-URI \])'
+    replace: '\1 https://{{ ansible_eth0.ipv4.address }}:8089'
+  notify: splunk restart
+
+- name: Set SHC replication factor
+  replace:
+    path: "{{ splunk_install_path }}/splunk/etc/apps/search_bootstrap_multisite/local/server.conf"
+    regexp: '(replication_factor = )(\<positive integer\>)'
+    replace: '\1 {{ search_head_cluster_rep_factor }}'
+  notify: splunk restart
+
+- name: Set SHC pass4Symmkey
+  replace:
+    path: "{{ splunk_install_path }}/splunk/etc/apps/search_bootstrap_multisite/local/server.conf"
+    regexp: '(disabled = )(false)'
+    replace: '\1 {{ search_head_cluster_passwd }}'
+  notify: splunk restart
+
+- name: Set SHC label
+  replace:
+    path: "{{ splunk_install_path }}/splunk/etc/apps/search_bootstrap_multisite/local/server.conf"
+    regexp: '(shcluster_label = )(\<string\>)'
+    replace: '\1 {{ search_head_cluster_label }}'
+  notify: splunk restart
+
+- name: Set SHC replication port
+  replace:
+    path: "{{ splunk_install_path }}/splunk/etc/apps/search_bootstrap_multisite/local/server.conf"
+    regexp: '(replication_port-ssl://13456)'
+    replace: '{{ search_head_cluster_rep_port }}'
+  notify: splunk restart

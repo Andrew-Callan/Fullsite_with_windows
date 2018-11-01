@@ -1,0 +1,41 @@
+--- # Copy configs needed for Indexer Cluster Master
+
+  
+# Verify if Splunk cluster_indexer_base already exists
+- name: Check if Splunk indexer_bootstrap_multisite path exists
+  stat: path={{ splunk_install_path }}/splunk/etc/apps/indexer_bootstrap_multisite
+  register: splunk_indexer_bootstrap_multisite
+
+- name: Copy Indexer base if doesn't exists
+  copy:
+    src: roles/indexers/files/indexer_bootstrap_multisite
+    dest: "{{ splunk_install_path }}/splunk/etc/apps/"
+    owner: splunk
+    group: splunk
+    force: no
+  when: index_cluster_enabled == true
+  notify: splunk restart
+    
+- name: Set indexer replication port
+  replace:
+    path: "{{ splunk_install_path }}/splunk/etc/apps/indexer_bootstrap_multisite/local/server.conf"
+    regexp: '(replication_port-ssl://9887)'
+    replace: '{{ indexer_rep_port }}'
+  when: index_cluster_enabled == true
+  notify: splunk restart
+    
+- name: Set cluster master uri
+  replace:
+    path: "{{ splunk_install_path }}/splunk/etc/apps/indexer_bootstrap_multisite/local/server.conf"
+    regexp: '(master_uri = )(https://master.example.com:8089)'
+    replace: '\1 {{ cluster_master_uri }}'
+  when: index_cluster_enabled == true
+  notify: splunk restart
+    
+- name: Set pass4SymKey
+  replace:
+    path: "{{ splunk_install_path }}/splunk/etc/apps/indexer_bootstrap_multisite/local/server.conf"
+    regexp: '(pass4SymmKey = )(SplunkPSD3FAUL7)'
+    replace: '\1 {{ index_cluster_passwd }}'
+  when: index_cluster_enabled == true
+  notify: splunk restart

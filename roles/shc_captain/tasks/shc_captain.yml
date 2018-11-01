@@ -1,0 +1,15 @@
+--- # Run the SHC bootstrap process
+# For simplicity we assign the sh with the lowest #
+# ie: spl-sh1
+
+# Verify if Splunk bootstrapped already exists
+- name: Check if Splunk is already bootstrapped
+  shell: cat {{ splunk_install_path }}/splunk/etc/system/local/server.conf
+  register: splunk_bootstrapped
+  changed_when: False
+  
+- name: Bootstrap the Splunk SH Captain
+  command: "{{ splunk_install_path }}/splunk/bin/splunk bootstrap shcluster-captain -servers_list {{ shc_members }} -auth admin:clearshark123"
+  become: yes
+  become_user: splunk
+  when: splunk_bootstrapped.stdout.find('shclustering') == -1

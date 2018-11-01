@@ -1,0 +1,46 @@
+--- # Copy configs needed for Indexer Cluster Master
+
+# Verify if Splunk master_bootstrap_multisite already exists
+- name: Check if Splunk master_bootstrap_multisite path exists
+  stat: path={{ splunk_install_path }}/splunk/etc/apps/heavy_forwarder_bootstrap
+  register: heavy_forwarder_bootstrap
+
+- name: Copy HF base if doesn't exists
+  copy:
+    src: heavy_forwarder_bootstrap
+    dest: "{{ splunk_install_path }}/splunk/etc/apps/"
+    owner: splunk
+    group: splunk
+    force: no
+  notify: splunk restart
+
+- name: Copy deployment-client base if doesn't exists
+  copy:
+    src: deployment_client
+    dest: "{{ splunk_install_path }}/splunk/etc/apps/"
+    owner: splunk
+    group: splunk
+    force: no
+  notify: splunk restart
+
+- name: Set deployment client
+  replace:
+    path: "{{ splunk_install_path }}/splunk/etc/apps/deployment_client/local/deploymentclient.conf"
+    regexp: '(targetUri = )(deployment_server)'
+    replace: '\1 {{ deployment_server }}'
+
+- name: Set outputs
+  replace:
+    path: "{{ splunk_install_path }}/splunk/etc/apps/heavy_forwarder_bootstrap/local/outputs.conf"
+    regexp: '(server = )(server_list)'
+    replace: '\1 {{ indexer_list }}'
+
+  
+- name: Copy TA-fixsplunk if doesn't exists
+  copy:
+    src: roles/common/files/TA-fixsplunk
+    dest: "{{ splunk_install_path }}/splunk/etc/apps/"
+    owner: splunk
+    group: splunk
+    force: no
+  notify: splunk restart

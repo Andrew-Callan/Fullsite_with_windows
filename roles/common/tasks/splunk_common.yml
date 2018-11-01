@@ -1,0 +1,33 @@
+---
+
+# Common settings for all Splunk servers.
+
+- name: Check if Splunk license_slave path exists
+  stat: path={{ splunk_install_path }}/splunk/etc/apps/license_slave
+  register: splunk_license_slave
+
+- name: Copy TA-fixsplunk if doesn't exists
+  copy:
+    src: roles/common/files/TA-fixsplunk
+    dest: "{{ splunk_install_path }}/splunk/etc/apps/"
+    owner: splunk
+    group: splunk
+    force: no
+  notify: splunk restart
+
+- name: Copy license_slave if doesn't exists
+  copy:
+    src: roles/common/files/license_slave
+    dest: "{{ splunk_install_path }}/splunk/etc/apps/"
+    owner: splunk
+    group: splunk
+    force: no
+  notify: splunk restart
+
+- name: Set license server
+  replace:
+    path: "{{ splunk_install_path }}/splunk/etc/apps/license_slave/local/server.conf"
+    regexp: '(master_uri = )(https://license.example.com:8089)'
+    replace: '\1 {{ license_master_uri }}'
+  when: index_cluster_enabled == true
+  notify: splunk restart

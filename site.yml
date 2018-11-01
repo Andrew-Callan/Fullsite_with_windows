@@ -1,0 +1,82 @@
+--- # Master config to call all other playbooks
+
+- hosts: cluster_master
+  become: yes
+  become_method: sudo
+  roles:
+    - { role: splunk_core_install, become: yes }
+    - { role: cluster_master, become: yes }
+    #- { role: common, become: yes }
+  post_tasks:
+    - name: Ensure splunk is running
+      service: name=splunk state=started
+
+- hosts: indexers
+  become: yes
+  become_method: sudo
+  roles:
+    - { role: splunk_core_install, become: yes }
+    - { role: indexers, become: yes }
+    - { role: common, become: yes }
+  post_tasks:
+    - name: Ensure splunk is running
+      service: name=splunk state=started
+
+- hosts: search_heads
+  become: yes
+  become_method: sudo
+  roles:
+    - { role: splunk_core_install, become: yes }
+    - { role: searchheads, become: yes }
+    - { role: common, become: yes }
+  post_tasks:
+    - name: Ensure splunk is running
+      service: name=splunk state=started
+
+- hosts: site1
+  become: yes
+  become_method: sudo
+  roles:
+    - { role: site1, become: yes }
+    - { role: common, become: yes }
+  post_tasks:
+    - name: Ensure splunk is running
+      service: name=splunk state=started
+
+- hosts: search_head_captain
+  become: yes
+  become_method: sudo
+  roles:
+    - { role: shc_captain, become: yes }
+  post_tasks:
+    - name: Ensure splunk is running
+      service: name=splunk state=started
+
+- hosts: heavy_forwarder
+  become: yes
+  become_method: sudo
+  roles:
+    - {role: splunk_core_install, become: yes }
+    - {role: heavy_forwarder, become: yes }
+  post_tasks:
+  - name: Ensure splunk is running
+    service: name=splunk state=started
+
+- hosts: forwarders_linux
+  become: yes
+  become_method: sudo
+  roles:
+    - { role: forwarder_linux, become: yes }
+    - { role: common, become: yes }
+  post_tasks:
+    - name: Ensure splunk is running
+      command: "{{ splunk_install_path }}/splunkforwarder/bin/splunk restart"
+
+- hosts: fowarders_windows
+  become: yes
+  become_method: sudo
+  roles:
+    - { role: common, become: yes }
+  post_tasks:
+    - name: Ensure splunk is running
+      service: name=splunk state=started

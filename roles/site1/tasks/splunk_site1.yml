@@ -1,0 +1,18 @@
+--- # Copy configs needed for Cluster site1
+
+  
+# Verify if Splunk site_1_bootstrap_multisite already exists
+- name: Check if Splunk site_1_bootstrap_multisite path exists
+  stat: path={{ splunk_install_path }}/splunk/etc/apps/site_1_bootstrap_multisite
+  register: splunk_site_1_bootstrap_multisite
+
+- name: Copy Site1 base if doesn't exists
+  copy:
+    src: roles/site1/files/site_1_bootstrap_multisite
+    dest: "{{ splunk_install_path }}/splunk/etc/apps/"
+    owner: splunk
+    group: splunk
+    force: no
+  when: index_cluster_enabled == true
+  notify: splunk restart
+  

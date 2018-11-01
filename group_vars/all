@@ -1,0 +1,55 @@
+---
+
+# root path for Splunk installation
+splunk_install_path: /opt
+
+# Where to find Splunk binaries
+splunk_bin_path: "{{ lookup('pipe', 'ls ' + splunk_deployment + '/splunk-*.tgz | head -1') }}"
+splunkforwarder_bin_path: "{{ lookup('pipe', 'ls ' + splunk_deployment + '/splunkforwarder-*.tgz | head -1') }}"
+
+# Splunk deployment folder path. This is the location where you will store the downloaded splunk.tgz files needed for installation.
+splunk_deployment: /home/ansible/splunk
+
+# Initial password for the Admin account. Change this after install.
+#
+# Run the following to creeate your own hash. Make sure your password meets complexity rules. (this command will NOT enforce that)
+# /opt/splunk/bin/splunk hash-passwd YourNewPassWord!!
+splunk_admin_pass: $6$gzJrjMIg72BtK3P5$WMS03mBY.68oDXCcdBogCUX5T/KKzGWMPDEK6qZuYrzIoLMAJabxAsbpck2R3mfootVCUUQW29/O8JLf0Xwr8.
+
+license_master_uri: https://10.142.0.8:8089
+deployment_server: https://10.142.0.8:8089
+
+# CM settings
+cluster_master_site: site0
+index_cluster_label: my_test_cluster
+index_cluster_rep_factor: 2
+index_cluster_search_factor: 2 
+index_cluster_available_sites: site1
+# Note -- The site_rep can NOT be lower than the base rep/search factor
+index_cluster_site_rep_factor: origin:2, total:2
+index_cluster_site_search_factor: origin:2, total:2
+cluster_master_uri: https://10.142.0.8:8089
+# Global Index cluster settings
+index_cluster_enabled: true
+# Cluster Master is pulled from the Ansible Host config
+#index_cluster_master: https://splunkcm01:8089 
+index_cluster_passwd: the_cluster_password
+indexer_list: https://10.142.0.6:9997,https://10.142.0.7:9997
+
+# Indexer cluster replication port
+indexer_rep_port: replication_port-ssl://9887
+
+# License Master is pulled from the Ansible Host config
+#license_master: https://splunkcm01:8089
+
+# Search Head cluster settings
+search_head_cluster_disabled: false
+search_head_cluster_rep_factor: 3
+search_head_cluster_passwd: shc_password
+search_head_cluster_label: my_test_shc
+search_head_cluster_captian: splunkshc01
+shc_members: https://10.142.0.3:8089,https://10.142.0.4:8089,https://10.142.0.5:8089
+
+# Search Head cluster replication port
+search_head_cluster_rep_port: replication_port-ssl://13456
+

@@ -1,0 +1,8 @@
+[win]
+10.150.0.3
+
+[win:vars]
+ansible_user=andrew_g_callan
+ansible_password=+.@l%e%eD@?VN,*
+ansible_connection=winrm
+ansible_winrm_server_cert_validation=ignore

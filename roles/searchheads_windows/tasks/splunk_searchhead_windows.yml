@@ -1,0 +1,32 @@
+--- # Playbook to test windows functionality
+- hosts: win
+  gather_facts: yes
+  tasks:
+#  - name: Make a new user
+#    win_user:
+#      name: splunk
+#      password: "ClearShark123!"
+#      state: present
+  - name: Download Splunk Enterprise installer
+    win_get_url:
+      url: 'https://www.splunk.com/bin/splunk/DownloadActivityServlet?architecture=x86_64&platform=windows&version=7.2.0&product=splunk&filename=splunk-7.2.0-8c86330ac18-x64-release.msi&wget=true'
+      dest: 'C:\Users\andrew_g_callan\Downloads\splunk_installer.msi'
+
+  - name: Install Splunk
+#      win_msi: 
+#        path: 'C:\Users\andrew_g_callan\Downloads\splunk_installer.msi'
+#        extra_args: 'AGREETOLICENSE=Yes SPLUNKPASSWORD=splunk_password /quiet'
+    win_shell: C:\Users\andrew_g_callan\Downloads\splunk_installer.msi AGREETOLICENSE=Yes SPLUNKPASSWORD=splunk_password /quiet
+
+#  - pause:
+#      minutes: 5
+
+  - name: Create deploymentclient app folder
+    win_file:
+      path: 'C:\Program Files\Splunk\etc\apps\windows_deploymentclient\'
+      state: directory
+
+  - name: Copy over deploymentclient file
+    win_copy:
+      src: /home/ansible/windows_deploymentclient/
+      dest: 'C:\Program Files\Splunk\etc\apps\windows_deploymentclient\'

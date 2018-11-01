@@ -1,0 +1,95 @@
+--- # Copy configs needed for Indexer Cluster Master
+
+# Verify if Splunk master_bootstrap_multisite already exists
+- name: Check if Splunk master_bootstrap_multisite path exists
+  stat: path={{ splunk_install_path }}/splunk/etc/apps/master_bootstrap_multisite
+  register: master_bootstrap_multisite
+
+- name: Copy CM base if doesn't exists
+  copy:
+    src: roles/cluster_master/files/master_bootstrap_multisite
+    dest: "{{ splunk_install_path }}/splunk/etc/apps/"
+    owner: splunk
+    group: splunk
+    force: no
+  notify: splunk restart
+
+- name: Copy DeploymentClient config
+  copy:
+    src: deployment_client
+    dest: "{{ splunk_install_path }}/splunk/etc/apps/"
+    owner: splunk
+    group: splunk
+    force: no
+  notify: splunk restart
+
+- name: Set deployment client
+  replace:
+    path: "{{ splunk_install_path }}/splunk/etc/apps/deployment_client/local/deploymentclient.conf"
+    regexp: '(targetUri = )(deployment_server)'
+    replace: '\1 {{ deployment_server }}'
+
+- name: Set CM site
+  replace:
+    path: "{{ splunk_install_path }}/splunk/etc/apps/master_bootstrap_multisite/local/server.conf"
+    regexp: '(site = )(site1)'
+    replace: '\1 {{ cluster_master_site }}'
+  notify: splunk restart
+
+- name: Set pass4SymKey
+  replace:
+    path: "{{ splunk_install_path }}/splunk/etc/apps/master_bootstrap_multisite/local/server.conf"
+    regexp: '(pass4SymmKey = )(SplunkPSD3FAUL7)'
+    replace: '\1 {{ index_cluster_passwd }}'
+  notify: splunk restart
+
+- name: Set cluster label
+  replace:
+    path: "{{ splunk_install_path }}/splunk/etc/apps/master_bootstrap_multisite/local/server.conf"
+    regexp: '(cluster_label = )(Description_for_Cluster)'
+    replace: '\1 {{ index_cluster_label }}'
+  notify: splunk restart
+
+- name: Set replication factor
+  replace:
+    path: "{{ splunk_install_path }}/splunk/etc/apps/master_bootstrap_multisite/local/server.conf"
+    regexp: '(replication_factor = )(3)'
+    replace: '\1 {{ index_cluster_rep_factor }}'
+  notify: splunk restart
+  
+- name: Set search factor
+  replace:
+    path: "{{ splunk_install_path }}/splunk/etc/apps/master_bootstrap_multisite/local/server.conf"
+    regexp: '(search_factor = )(2)'
+    replace: '\1  {{ index_cluster_search_factor }}'
+  notify: splunk restart
+
+- name: Set cluster available sites
+  replace:
+    path: "{{ splunk_install_path }}/splunk/etc/apps/master_bootstrap_multisite/local/server.conf"
+    regexp: '(available_sites = )(site1, site2)'
+    replace: '\1 {{ index_cluster_available_sites }}'
+  notify: splunk restart
+  
+- name: Set site replication factor
+  replace:
+    path: "{{ splunk_install_path }}/splunk/etc/apps/master_bootstrap_multisite/local/server.conf"
+    regexp: '(site_replication_factor = )(origin:2, total:3)'
+    replace: '\1 {{ index_cluster_site_rep_factor }}'
+  notify: splunk restart
+  
+- name: Set search factor
+  replace:
+    path: "{{ splunk_install_path }}/splunk/etc/apps/master_bootstrap_multisite/local/server.conf"
+    regexp: '(site_search_factor = )(origin:1, total:2)'
+    replace: '\1 {{ index_cluster_site_search_factor }}'
+  notify: splunk restart
+  
+- name: Copy TA-fixsplunk if doesn't exists
+  copy:
+    src: roles/common/files/TA-fixsplunk
+    dest: "{{ splunk_install_path }}/splunk/etc/apps/"
+    owner: splunk
+    group: splunk
+    force: no
+  notify: splunk restart
